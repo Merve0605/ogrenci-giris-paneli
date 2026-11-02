@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="tr" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ayneli Öğrenci Giriş Portalı</title>
+    
+    <!-- PWA & Mobil Uygulama Desteği (Kurulum ve Tam Ekran Çalışma) -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Ayneli Portal">
+    <meta name="theme-color" content="#f8fafc">
+    
+    <!-- Favicon (Data URI Akademik Simge) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236366f1'><path d='M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z'/></svg>">
+    
+    <!-- Web App Manifest (Uygulama İndirme Altyapısı) -->
+    <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22Ayneli%20%C3%96%C4%9Frenci%20Giri%C5%9F%20Portal%C4%B1%22%2C%22short_name%22%3A%22AyneliPortal%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f8fafc%22%2C%22theme_color%22%3A%22%236366f1%22%7D">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome İkonları -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Cam Efekti (Glassmorphism) */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(28px);
+            -webkit-backdrop-filter: blur(28px);
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            box-shadow: 0 25px 60px -15px rgba(99, 102, 241, 0.15),
+                        0 4px 16px 0 rgba(255, 255, 255, 0.8) inset;
+        }
+
+        .glass-input {
+            background: rgba(255, 255, 255, 0.75);
+            border: 1.5px solid rgba(226, 232, 240, 0.95);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-input:focus-within {
+            background: rgba(255, 255, 255, 0.98);
+            border-color: #818cf8;
+            box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.22);
+        }
+
+        /* Soft Gradient Butonlar */
+        .btn-soft {
+            background: linear-gradient(135deg, #a5b4fc 0%, #bae6fd 50%, #c7d2fe 100%);
+            background-size: 200% 200%;
+            transition: all 0.4s ease;
+        }
+
+        .btn-soft:hover {
+            background-position: 100% 100%;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 28px -6px rgba(99, 102, 241, 0.38);
+        }
+
+        .btn-soft:active {
+            transform: translateY(0);
+        }
+
+        /* Maskot Göz Kapatma Animasyonları */
+        .mascot-hand {
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transform-origin: bottom center;
+        }
+
+        .cover-eyes .mascot-hand-left {
+            transform: translateY(-28px) translateX(12px) rotate(20deg);
+        }
+
+        .cover-eyes .mascot-hand-right {
+            transform: translateY(-28px) translateX(-12px) rotate(-20deg);
+        }
+
+        .cover-eyes .pupil {
+            opacity: 0;
+        }
+
+        /* Yüzen Rozetler için Animasyon */
+        @keyframes float-slow {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-6px) rotate(3deg); }
+        }
+
+        .animate-float {
+            animation: float-slow 3.5s ease-in-out infinite;
+        }
+
+        /* Biyometrik Tarama Animasyonu */
+        @keyframes scan {
+            0% { top: 0%; opacity: 0.8; }
+            50% { opacity: 1; }
+            100% { top: 100%; opacity: 0.2; }
+        }
+
+        .scan-line {
+            animation: scan 1.8s infinite ease-in-out;
+        }
+
+        .perspective-container {
+            perspective: 1200px;
+        }
+
+        .tilt-card {
+            transition: transform 0.15s ease-out;
+            transform-style: preserve-3d;
+        }
+    </style>
+</head>
+<body class="h-full bg-slate-100 text-slate-700 overflow-x-hidden flex items-center justify-center min-h-screen relative p-4">
+
+    <!-- Dinamik Soft Arka Plan Canvas -->
+    <canvas id="bg-canvas" class="fixed inset-0 w-full h-full -z-10"></canvas>
+
+    <!-- 1. ÖĞRENCİ GİRİŞ & KAYIT KARTI -->
+    <div id="auth-container" class="perspective-container w-full max-w-md my-auto transition-all duration-500">
+        <div id="login-card" class="tilt-card glass-card rounded-3xl p-6 sm:p-8 relative overflow-hidden transition-all duration-300">
+
+            <!-- Üst Etiketler & Maskot -->
+            <div class="flex flex-col items-center justify-center mb-4 relative">
+                
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50/90 border border-indigo-100 text-[11px] font-bold text-indigo-600 shadow-sm">
+                        <i class="fa-solid fa-graduation-cap text-indigo-500"></i>
+                        <span>Ayneli Akademik Portal</span>
+                    </span>
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-[10px] font-semibold text-emerald-600">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        Sistem Aktif
+                    </span>
+                </div>
+
+                <!-- Yüzen Akademik Simgeler -->
+                <div class="absolute left-4 top-4 animate-float text-indigo-400 opacity-70">
+                    <i class="fa-solid fa-book-open text-lg"></i>
+                </div>
+                <div class="absolute right-4 top-2 animate-float text-sky-400 opacity-70" style="animation-delay: 1s;">
+                    <i class="fa-solid fa-sparkles text-lg"></i>
+                </div>
+
+                <!-- İnteraktif Soft Maskot -->
+                <div id="mascot-container" class="relative w-28 h-24 mb-1 flex items-center justify-center">
+                    <svg id="mascot" viewBox="0 0 120 100" class="w-full h-full drop-shadow-md">
+                        <defs>
+                            <linearGradient id="soft-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#c7d2fe" />
+                                <stop offset="50%" stop-color="#bae6fd" />
+                                <stop offset="100%" stop-color="#a5b4fc" />
+                            </linearGradient>
+                        </defs>
+
+                        <!-- Maskot Gövdesi -->
+                        <path d="M 20 80 Q 20 20 60 20 Q 100 20 100 80 Q 60 95 20 80 Z" fill="url(#soft-grad)" />
+
+                        <!-- Yanaklar -->
+                        <circle cx="35" cy="58" r="6" fill="#fbcfe8" opacity="0.7"/>
+                        <circle cx="85" cy="58" r="6" fill="#fbcfe8" opacity="0.7"/>
+
+                        <!-- Gözler ve Bebekleri -->
+                        <ellipse cx="42" cy="48" rx="8" ry="10" fill="#ffffff"/>
+                        <circle id="pupil-l" class="pupil transition-transform duration-75" cx="42" cy="48" r="4" fill="#1e293b"/>
+
+                        <ellipse cx="78" cy="48" rx="8" ry="10" fill="#ffffff"/>
+                        <circle id="pupil-r" class="pupil transition-transform duration-75" cx="78" cy="48" r="4" fill="#1e293b"/>
+
+                        <!-- Gülümseme -->
+                        <path d="M 54 62 Q 60 67 66 62" stroke="#1e293b" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+
+                        <!-- Şifrede Göz Kapatan Eller -->
+                        <circle class="mascot-hand mascot-hand-left" cx="28" cy="85" r="9" fill="#a5b4fc"/>
+                        <circle class="mascot-hand mascot-hand-right" cx="92" cy="85" r="9" fill="#a5b4fc"/>
+                    </svg>
+                </div>
+
+                <h1 id="card-title" class="text-2xl font-extrabold text-slate-800 tracking-tight">Öğrenci Girişi</h1>
+                <p id="card-subtitle" class="text-xs font-medium text-slate-500 mt-0.5">2026-2027 Öğrenci Bilgi Sistemi</p>
+            </div>
+
+            <!-- Giriş Seçenek Sekmeleri -->
+            <div id="tabs-container" class="flex p-1 bg-slate-200/70 backdrop-blur-md rounded-2xl mb-4 text-xs font-semibold shadow-inner">
+                <button id="tab-password" type="button" onclick="switchTab('password')" class="flex-1 py-2 rounded-xl text-slate-800 bg-white shadow-sm transition-all duration-300">
+                    <i class="fa-solid fa-key mr-1 text-indigo-500"></i>Şifre Girişi
+                </button>
+                <button id="tab-passkey" type="button" onclick="switchTab('passkey')" class="flex-1 py-2 rounded-xl text-slate-500 hover:text-slate-700 transition-all duration-300">
+                    <i class="fa-solid fa-fingerprint mr-1 text-teal-500"></i>Passkey / Biyometrik
+                </button>
+            </div>
+
+            <!-- 1. Şifre Giriş Formu (Yalnızca Öğrencilere Özel) -->
+            <form id="form-password" onsubmit="handleLogin(event)" class="space-y-3.5">
+                
+                <div>
+                    <div class="flex items-center justify-between mb-1.5 px-1">
+                        <label id="input-type-label" class="text-xs font-bold text-slate-700">Öğrenci Bilgisi</label>
+                        <div class="flex bg-slate-200/80 p-0.5 rounded-lg text-[10px] font-bold">
+                            <button type="button" id="type-btn-email" onclick="setInputType('email')" class="px-2 py-0.5 rounded-md bg-white text-indigo-600 shadow-sm transition-all">E-Posta</button>
+                            <button type="button" id="type-btn-number" onclick="setInputType('number')" class="px-2 py-0.5 rounded-md text-slate-500 hover:text-slate-800 transition-all">Öğrenci No</button>
+                        </div>
+                    </div>
+
+                    <div class="glass-input rounded-2xl flex items-center px-3.5 py-2.5">
+                        <i id="input-type-icon" class="fa-regular fa-envelope text-slate-400 text-sm mr-3"></i>
+                        <input type="text" id="email-input" required placeholder="merve.ayneli@ogrenci.edu.tr" 
+                            class="w-full bg-transparent border-none text-sm text-slate-800 focus:outline-none placeholder-slate-400 font-medium"
+                            onfocus="setFocusState('email')" onblur="setFocusState('none')"
+                            onkeydown="handleEmailEnter(event)">
+                    </div>
+                </div>
+
+                <!-- Şifre Alanı -->
+                <div>
+                    <div class="flex justify-between items-center mb-1 px-1">
+                        <label class="block text-xs font-bold text-slate-700">Parola</label>
+                        <button type="button" onclick="handleForgotPassword()" class="text-xs text-indigo-600 hover:text-indigo-800 font-semibold transition-colors">Unuttun mu?</button>
+                    </div>
+                    <div class="glass-input rounded-2xl flex items-center px-3.5 py-2.5 relative">
+                        <i class="fa-solid fa-lock text-slate-400 text-sm mr-3"></i>
+                        <input type="password" id="password-input" required placeholder="••••••••" 
+                            class="w-full bg-transparent border-none text-sm text-slate-800 focus:outline-none placeholder-slate-400 font-medium"
+                            onfocus="setFocusState('password')" onblur="setFocusState('none')">
+                        <button type="button" onclick="togglePasswordVisibility()" class="text-slate-400 hover:text-slate-600 focus:outline-none px-1">
+                            <i id="eye-icon" class="fa-regular fa-eye text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between pt-0.5">
+                    <label class="flex items-center cursor-pointer">
+                        <input type="checkbox" class="sr-only peer">
+                        <div class="w-4 h-4 border-1.5 border-slate-300 rounded-md peer-checked:bg-indigo-500 peer-checked:border-indigo-500 flex items-center justify-center transition-all bg-white/50">
+                            <i class="fa-solid fa-check text-white text-[10px] opacity-0 peer-checked:opacity-100"></i>
+                        </div>
+                        <span class="ml-2 text-xs text-slate-600 font-semibold">Oturumu açık tut</span>
+                    </label>
+                </div>
+
+                <button type="submit" id="submit-btn" class="w-full btn-soft text-slate-800 font-bold py-3 rounded-2xl text-sm flex items-center justify-center gap-2 shadow-sm mt-2">
+                    <span>Sisteme Giriş Yap</span>
+                    <i class="fa-solid fa-arrow-right text-xs"></i>
+                </button>
+            </form>
+
+            <!-- 2. Passkey Biyometrik Giriş Formu -->
+            <div id="form-passkey" class="hidden flex-col items-center justify-center py-4 space-y-4">
+                <div class="relative w-24 h-24 flex items-center justify-center rounded-3xl bg-indigo-50/80 border border-indigo-100 shadow-inner overflow-hidden cursor-pointer group" onclick="startBiometricScan()">
+                    <i class="fa-solid fa-fingerprint text-5xl text-indigo-500 group-hover:scale-110 transition-transform"></i>
+                    <div id="scan-line" class="hidden absolute inset-x-0 h-1 bg-indigo-500 shadow-[0_0_10px_#6366f1] scan-line"></div>
+                </div>
+                <p class="text-xs text-center text-slate-500 max-w-[220px]">Cihazınızın FaceID, TouchID veya Passkey anahtarını kullanın</p>
+                <button type="button" onclick="startBiometricScan()" class="btn-soft w-full text-slate-800 font-bold py-2.5 rounded-2xl text-sm">
+                    Biyometrik Kimlik Doğrula
+                </button>
+            </div>
+
+            <!-- 3. Öğrenci Kayıt Formu -->
+            <form id="form-register" onsubmit="handleRegister(event)" class="hidden space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1 ml-1">Ad Soyad</label>
+                    <div class="glass-input rounded-2xl flex items-center px-3.5 py-2">
+                        <i class="fa-regular fa-user text-slate-400 text-sm mr-3"></i>
+                        <input type="text" id="reg-name" required placeholder="Merve Ayneli" 
+                            class="w-full bg-transparent border-none text-sm text-slate-800 focus:outline-none font-medium">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1 ml-1">Öğrenci Numarası</label>
+                    <div class="glass-input rounded-2xl flex items-center px-3.5 py-2">
+                        <i class="fa-regular fa-id-card text-slate-400 text-sm mr-3"></i>
+                        <input type="text" id="reg-number" required placeholder="2024010042" 
+                            class="w-full bg-transparent border-none text-sm text-slate-800 focus:outline-none font-medium">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1 ml-1">Kurumsal E-Posta</label>
+                    <div class="glass-input rounded-2xl flex items-center px-3.5 py-2">
+                        <i class="fa-regular fa-envelope text-slate-400 text-sm mr-3"></i>
+                        <input type="email" id="reg-email" required placeholder="merve.ayneli@ogrenci.edu.tr" 
+                            class="w-full bg-transparent border-none text-sm text-slate-800 focus:outline-none font-medium">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1 ml-1">Parola Belirleyin</label>
+                    <div class="glass-input rounded-2xl flex items-center px-3.5 py-2 relative">
+                        <i class="fa-solid fa-lock text-slate-400 text-sm mr-3"></i>
+                        <input type="password" id="reg-password" required placeholder="••••••••" 
+                            class="w-full bg-transparent border-none text-sm text-slate-800 focus:outline-none font-medium"
+                            onfocus="setFocusState('password')" onblur="setFocusState('none')">
+                    </div>
+                </div>
+
+                <div class="flex items-center pt-1">
+                    <label class="flex items-center cursor-pointer">
+                        <input type="checkbox" required class="sr-only peer">
+                        <div class="w-4 h-4 border-1.5 border-slate-300 rounded-md peer-checked:bg-indigo-500 peer-checked:border-indigo-500 flex items-center justify-center transition-all bg-white/50">
+                            <i class="fa-solid fa-check text-white text-[10px] opacity-0 peer-checked:opacity-100"></i>
+                        </div>
+                        <span class="ml-2 text-xs text-slate-600 font-medium">Kullanım şartlarını onaylıyorum</span>
+                    </label>
+                </div>
+
+                <button type="submit" id="reg-submit-btn" class="w-full btn-soft text-slate-800 font-bold py-3 rounded-2xl text-sm flex items-center justify-center gap-2 shadow-sm">
+                    <span>Öğrenci Kaydı Oluştur</span>
+                    <i class="fa-solid fa-user-plus text-xs"></i>
+                </button>
+            </form>
+
+            <!-- Alt Geçiş Bağlantıları -->
+            <p id="footer-text" class="text-center text-xs text-slate-500 mt-4 font-medium">
+                Hesabınız yok mu? <button type="button" onclick="toggleAuthMode('register')" class="text-indigo-600 font-bold hover:underline">Hemen Oluşturun</button>
+            </p>
+        </div>
+    </div>
+
+    <!-- 2. GİRİŞ SONRASI ÖĞRENCİ AKADEMİK PANELİ -->
+    <div id="dashboard-container" class="hidden w-full max-w-5xl my-auto transition-all duration-500">
+        <div class="glass-card rounded-3xl p-6 sm:p-8 space-y-6">
+            
+            <!-- Panel Üst Bar -->
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pb-4 border-b border-slate-200/80">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-2xl bg-indigo-100 border border-indigo-200 flex items-center justify-center text-indigo-600 font-bold text-xl">
+                        🎓
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-800">Hoş Geldiniz, Merve Ayneli</h2>
+                        <p class="text-xs text-slate-500 font-medium">Yazılım Mühendisliği • 3. Sınıf (2024010042)</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <span class="px-3 py-1.5 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 text-xs font-semibold flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Güz Dönemi Aktif
+                    </span>
+                    <button onclick="handleLogout()" class="px-4 py-2 rounded-xl bg-rose-50 text-rose-600 border border-rose-100 text-xs font-bold hover:bg-rose-100 transition-colors flex items-center gap-1.5">
+                        <i class="fa-solid fa-right-from-bracket"></i> Çıkış Yap
+                    </button>
+                </div>
+            </div>
+
+            <!-- İstatistik Kartları -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-white/70 p-4 rounded-2xl border border-slate-200/60 shadow-sm">
+                    <p class="text-xs text-slate-400 font-bold uppercase">Genel Ortam (ANO)</p>
+                    <p class="text-2xl font-extrabold text-indigo-600 mt-1">3.48 <span class="text-xs text-slate-400 font-normal">/ 4.0</span></p>
+                </div>
+                <div class="bg-white/70 p-4 rounded-2xl border border-slate-200/60 shadow-sm">
+                    <p class="text-xs text-slate-400 font-bold uppercase">Tamamlanan AKTS</p>
+                    <p class="text-2xl font-extrabold text-sky-600 mt-1">142 <span class="text-xs text-slate-400 font-normal">/ 240</span></p>
+                </div>
+                <div class="bg-white/70 p-4 rounded-2xl border border-slate-200/60 shadow-sm">
+                    <p class="text-xs text-slate-400 font-bold uppercase">Aktif Dersler</p>
+                    <p class="text-2xl font-extrabold text-teal-600 mt-1">6 Ders</p>
+                </div>
+                <div class="bg-white/70 p-4 rounded-2xl border border-slate-200/60 shadow-sm">
+                    <p class="text-xs text-slate-400 font-bold uppercase">Yaklaşan Sınav</p>
+                    <p class="text-2xl font-extrabold text-rose-500 mt-1">2 Sınav</p>
+                </div>
+            </div>
+
+            <!-- İçerik Alanı (Dersler ve Duyurular) -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <div class="lg:col-span-2 space-y-4">
+                    <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2">
+                        <i class="fa-solid fa-book text-indigo-500"></i> Aktif Dönem Dersleri
+                    </h3>
+
+                    <div class="space-y-3">
+                        <div class="bg-white/80 p-4 rounded-2xl border border-slate-200/80 flex items-center justify-between hover:shadow-md transition-shadow">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                                    CS301
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-bold text-slate-800">Veri Yapıları ve Algoritmalar</h4>
+                                    <p class="text-xs text-slate-500">Prof. Dr. Mehmet Öz • Pazartesi 09:00</p>
+                                </div>
+                            </div>
+                            <span class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-600 text-xs font-bold">%92 Devam</span>
+                        </div>
+
+                        <div class="bg-white/80 p-4 rounded-2xl border border-slate-200/80 flex items-center justify-between hover:shadow-md transition-shadow">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center font-bold">
+                                    SE304
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-bold text-slate-800">Web Tasarımı ve Geliştirme</h4>
+                                    <p class="text-xs text-slate-500">Doç. Dr. Ayşe Kaya • Çarşamba 13:00</p>
+                                </div>
+                            </div>
+                            <span class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-600 text-xs font-bold">%100 Devam</span>
+                        </div>
+
+                        <div class="bg-white/80 p-4 rounded-2xl border border-slate-200/80 flex items-center justify-between hover:shadow-md transition-shadow">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-bold">
+                                    MATH201
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-bold text-slate-800">Olasılık ve İstatistik</h4>
+                                    <p class="text-xs text-slate-500">Dr. Öğr. Üyesi Can Demir • Cuma 10:30</p>
+                                </div>
+                            </div>
+                            <span class="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-600 text-xs font-bold">%85 Devam</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <h3 class="text-sm font-bold text-slate-700 flex items-center gap-2">
+                        <i class="fa-solid fa-bullhorn text-sky-500"></i> Akademik Duyurular
+                    </h3>
+
+                    <div class="bg-white/80 p-4 rounded-2xl border border-slate-200/80 space-y-3">
+                        <div class="pb-3 border-b border-slate-100">
+                            <span class="text-[10px] font-bold text-indigo-500 uppercase tracking-wider">Önemli</span>
+                            <h5 class="text-xs font-bold text-slate-800 mt-0.5">Vize Sınav Takvimi Açıklandı</h5>
+                            <p class="text-[11px] text-slate-500 mt-1">Güz dönemi ara sınavları 12-20 Kasım tarihlerinde yapılacaktır.</p>
+                        </div>
+
+                        <div class="pb-2">
+                            <span class="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">Etkinlik</span>
+                            <h5 class="text-xs font-bold text-slate-800 mt-0.5">Yazılım ve Kariyer Zirvesi</h5>
+                            <p class="text-[11px] text-slate-500 mt-1">Konferans salonunda saat 14:00'te başlayacaktır.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bildirim Kutusu (Toast) -->
+    <div id="toast" class="fixed top-5 right-5 transform translate-y-[-120px] opacity-0 transition-all duration-500 z-50 max-w-xs w-full">
+        <div id="toast-body" class="glass-card px-4 py-3 rounded-2xl shadow-xl flex items-center space-x-3 border-l-4">
+            <i id="toast-icon" class="text-xl"></i>
+            <div>
+                <h4 id="toast-title" class="text-xs font-bold text-slate-800">Bildirim</h4>
+                <p id="toast-message" class="text-xs text-slate-600 leading-tight"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+        let blobs = [];
+        let activeTab = 'password';
+        let currentInputType = 'email';
+
+        function resizeCanvas() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            initBlobs();
+        }
+
+        class SoftBlob {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.radius = Math.random() * 220 + 160;
+                this.vx = (Math.random() - 0.5) * 0.6;
+                this.vy = (Math.random() - 0.5) * 0.6;
+                const colors = [
+                    'rgba(199, 210, 254, 0.55)',
+                    'rgba(186, 230, 253, 0.55)',
+                    'rgba(254, 205, 211, 0.50)',
+                    'rgba(167, 243, 208, 0.50)'
+                ];
+                this.color = colors[Math.floor(Math.random() * colors.length)];
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+
+                if (this.x - this.radius < 0 || this.x + this.radius > width) this.vx *= -1;
+                if (this.y - this.radius < 0 || this.y + this.radius > height) this.vy *= -1;
+            }
+
+            draw() {
+                ctx.beginPath();
+                const grad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.radius);
+                grad.addColorStop(0, this.color);
+                grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+                ctx.fillStyle = grad;
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function initBlobs() {
+            blobs = [];
+            for (let i = 0; i < 5; i++) {
+                blobs.push(new SoftBlob());
+            }
+        }
+
+        function animateCanvas() {
+            ctx.clearRect(0, 0, width, height);
+            blobs.forEach(blob => {
+                blob.update();
+                blob.draw();
+            });
+            requestAnimationFrame(animateCanvas);
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        animateCanvas();
+
+        const card = document.getElementById('login-card');
+        const mascotContainer = document.getElementById('mascot-container');
+        const pupilL = document.getElementById('pupil-l');
+        const pupilR = document.getElementById('pupil-r');
+
+        let isPasswordFocused = false;
+
+        document.addEventListener('mousemove', (e) => {
+            if (!card) return;
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left - rect.width / 2;
+            const y = e.clientY - rect.top - rect.height / 2;
+            
+            const rotateX = (-y / rect.height) * 6;
+            const rotateY = (x / rect.width) * 6;
+
+            card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+
+            if (!isPasswordFocused && pupilL && pupilR && mascotContainer) {
+                const mascotRect = mascotContainer.getBoundingClientRect();
+                const mascotCenterX = mascotRect.left + mascotRect.width / 2;
+                const mascotCenterY = mascotRect.top + mascotRect.height / 2;
+
+                const angle = Math.atan2(e.clientY - mascotCenterY, e.clientX - mascotCenterX);
+                const distance = Math.min(3, Math.hypot(e.clientX - mascotCenterX, e.clientY - mascotCenterY) / 50);
+
+                const pupilX = Math.cos(angle) * distance;
+                const pupilY = Math.sin(angle) * distance;
+
+                pupilL.style.transform = `translate(${pupilX}px, ${pupilY}px)`;
+                pupilR.style.transform = `translate(${pupilX}px, ${pupilY}px)`;
+            }
+        });
+
+        if (card) {
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = `rotateX(0deg) rotateY(0deg)`;
+                if (pupilL && pupilR) {
+                    pupilL.style.transform = `translate(0px, 0px)`;
+                    pupilR.style.transform = `translate(0px, 0px)`;
+                }
+            });
+        }
+
+        function setInputType(type) {
+            currentInputType = type;
+            const emailInput = document.getElementById('email-input');
+            const icon = document.getElementById('input-type-icon');
+            const btnEmail = document.getElementById('type-btn-email');
+            const btnNumber = document.getElementById('type-btn-number');
+
+            if (type === 'email') {
+                emailInput.placeholder = "merve.ayneli@ogrenci.edu.tr";
+                icon.className = "fa-regular fa-envelope text-slate-400 text-sm mr-3";
+                btnEmail.className = "px-2 py-0.5 rounded-md bg-white text-indigo-600 shadow-sm transition-all";
+                btnNumber.className = "px-2 py-0.5 rounded-md text-slate-500 hover:text-slate-800 transition-all";
+            } else {
+                emailInput.placeholder = "Öğrenci Numarası (Örn: 2024010042)";
+                icon.className = "fa-regular fa-id-card text-slate-400 text-sm mr-3";
+                btnNumber.className = "px-2 py-0.5 rounded-md bg-white text-indigo-600 shadow-sm transition-all";
+                btnEmail.className = "px-2 py-0.5 rounded-md text-slate-500 hover:text-slate-800 transition-all";
+            }
+        }
+
+        function setFocusState(state) {
+            const mascotSvg = document.getElementById('mascot');
+            if (state === 'password') {
+                isPasswordFocused = true;
+                if (mascotSvg) mascotSvg.classList.add('cover-eyes');
+            } else {
+                isPasswordFocused = false;
+                if (mascotSvg) mascotSvg.classList.remove('cover-eyes');
+            }
+        }
+
+        function togglePasswordVisibility() {
+            const input = document.getElementById('password-input');
+            const icon = document.getElementById('eye-icon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        function switchTab(tab) {
+            activeTab = tab;
+            const formPassword = document.getElementById('form-password');
+            const formPasskey = document.getElementById('form-passkey');
+
+            const btnPassword = document.getElementById('tab-password');
+            const btnPasskey = document.getElementById('tab-passkey');
+
+            [btnPassword, btnPasskey].forEach(btn => {
+                if (btn) btn.className = "flex-1 py-2 rounded-xl text-slate-500 hover:text-slate-700 transition-all duration-300 font-semibold";
+            });
+
+            formPassword.classList.add('hidden');
+            formPasskey.classList.add('hidden');
+            formPasskey.classList.remove('flex');
+
+            if (tab === 'password') {
+                formPassword.classList.remove('hidden');
+                if (btnPassword) btnPassword.className = "flex-1 py-2 rounded-xl text-slate-800 bg-white shadow-sm transition-all duration-300 font-semibold";
+            } else if (tab === 'passkey') {
+                formPasskey.classList.remove('hidden');
+                formPasskey.classList.add('flex');
+                if (btnPasskey) btnPasskey.className = "flex-1 py-2 rounded-xl text-slate-800 bg-white shadow-sm transition-all duration-300 font-semibold";
+            }
+        }
+
+        function toggleAuthMode(mode) {
+            const cardTitle = document.getElementById('card-title');
+            const cardSubtitle = document.getElementById('card-subtitle');
+            const tabsContainer = document.getElementById('tabs-container');
+            const formPassword = document.getElementById('form-password');
+            const formPasskey = document.getElementById('form-passkey');
+            const formRegister = document.getElementById('form-register');
+            const footerText = document.getElementById('footer-text');
+
+            if (mode === 'register') {
+                cardTitle.innerText = 'Öğrenci Kaydı';
+                cardSubtitle.innerText = 'Ayneli Portal hesabı oluşturun';
+                tabsContainer.classList.add('hidden');
+                
+                formPassword.classList.add('hidden');
+                formPasskey.classList.add('hidden');
+                formPasskey.classList.remove('flex');
+                
+                formRegister.classList.remove('hidden');
+
+                footerText.innerHTML = `Zaten hesabınız var mı? <button type="button" onclick="toggleAuthMode('login')" class="text-indigo-600 font-bold hover:underline">Giriş Yapın</button>`;
+            } else {
+                cardTitle.innerText = 'Öğrenci Girişi';
+                cardSubtitle.innerText = '2026-2027 Öğrenci Bilgi Sistemi';
+                tabsContainer.classList.remove('hidden');
+
+                formRegister.classList.add('hidden');
+
+                switchTab(activeTab);
+
+                footerText.innerHTML = `Hesabınız yok mu? <button type="button" onclick="toggleAuthMode('register')" class="text-indigo-600 font-bold hover:underline">Hemen Oluşturun</button>`;
+            }
+        }
+
+        function handleRegister(event) {
+            event.preventDefault();
+            const btn = document.getElementById('reg-submit-btn');
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin text-sm"></i> <span>Kayıt Yapılıyor...</span>`;
+
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.innerHTML = `<span>Öğrenci Kaydı Oluştur</span> <i class="fa-solid fa-user-plus text-xs"></i>`;
+                showNotification('Öğrenci kaydınız başarıyla oluşturuldu!', 'success');
+                toggleAuthMode('login');
+            }, 1200);
+        }
+
+        function handleLogin(event) {
+            event.preventDefault();
+            const btn = document.getElementById('submit-btn');
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin text-sm"></i> <span>Doğrulanıyor...</span>`;
+
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.innerHTML = `<span>Sisteme Giriş Yap</span> <i class="fa-solid fa-arrow-right text-xs"></i>`;
+                
+                document.getElementById('auth-container').classList.add('hidden');
+                document.getElementById('dashboard-container').classList.remove('hidden');
+
+                showNotification('Merve Ayneli olarak giriş yapıldı!', 'success');
+            }, 1000);
+        }
+
+        function handleLogout() {
+            document.getElementById('dashboard-container').classList.add('hidden');
+            document.getElementById('auth-container').classList.remove('hidden');
+            showNotification('Oturum kapatıldı.', 'info');
+        }
+
+        function startBiometricScan() {
+            const scanLine = document.getElementById('scan-line');
+            scanLine.classList.remove('hidden');
+
+            setTimeout(() => {
+                scanLine.classList.add('hidden');
+                document.getElementById('auth-container').classList.add('hidden');
+                document.getElementById('dashboard-container').classList.remove('hidden');
+                showNotification('Biyometrik Passkey doğrulandı!', 'success');
+            }, 1500);
+        }
+
+        function handleForgotPassword() {
+            showNotification('Şifre sıfırlama bağlantısı e-postanıza gönderildi.', 'info');
+        }
+
+        function handleEmailEnter(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                const passwordInput = document.getElementById('password-input');
+                if (passwordInput) {
+                    passwordInput.focus();
+                }
+            }
+        }
+
+        function showNotification(msg, type = 'info') {
+            const toast = document.getElementById('toast');
+            const toastBody = document.getElementById('toast-body');
+            const toastTitle = document.getElementById('toast-title');
+            const toastMsg = document.getElementById('toast-message');
+            const toastIcon = document.getElementById('toast-icon');
+
+            toastMsg.innerText = msg;
+
+            if (type === 'success') {
+                toastTitle.innerText = 'Başarılı';
+                toastBody.style.borderLeftColor = '#10b981';
+                toastIcon.className = 'fa-solid fa-circle-check text-emerald-500';
+            } else if (type === 'error') {
+                toastTitle.innerText = 'Uyarı';
+                toastBody.style.borderLeftColor = '#f43f5e';
+                toastIcon.className = 'fa-solid fa-circle-xmark text-rose-500';
+            } else {
+                toastTitle.innerText = 'Bilgi';
+                toastBody.style.borderLeftColor = '#6366f1';
+                toastIcon.className = 'fa-solid fa-circle-info text-indigo-500';
+            }
+
+            toast.classList.remove('translate-y-[-120px]', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-[-120px]', 'opacity-0');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
