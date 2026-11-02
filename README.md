@@ -2,6 +2,7 @@
 Portal, öğrencilerin sınavlarına girmesini, derslerini takip etmesini ve not/puan hesaplamalarını yapmasını sağlayan modern ve etkileşimli bir web platformudur.
 
 🚀 Öne Çıkan Özellikler
+
 🔒 Güvenli Giriş Paneli:
 Kurumsal E-Posta (ogrenci.edu.tr) veya Öğrenci Numarası ile oturum açma.
 FaceID / TouchID desteği sağlayan Passkey (Biyometrik) doğrulama.
